@@ -29,9 +29,6 @@ public class ShotBullet : MonoBehaviour
 
     public void Shot()
     {
-        // すでに発射済みなら処理を飛ばす
-        if (shot) return;
-
         // 空のオブジェクトを生成
         GameObject go = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
         // クリックした座標の取得
@@ -42,5 +39,10 @@ public class ShotBullet : MonoBehaviour
         go.GetComponent<Rigidbody2D>().velocity = shotForward * BULLET_SPEED;
         // 発射済にする
         shot = true;
+    }
+
+    public bool GetShot()
+    {
+        return shot;
     }
 }

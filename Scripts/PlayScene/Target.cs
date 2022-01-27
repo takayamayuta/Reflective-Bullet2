@@ -10,6 +10,7 @@ public class Target : MonoBehaviour
     const float WAIT_TIME = 0.5f;           // アニメーションをしている間の待機時間
     const float SHRINK = 0.9f;              // 収縮値
     const float DELETE_SCALE_SIZE = 0.1f;   // 一定以下の大きさで削除する
+    const float EFFECT_SCALE = 3.0f;        // 死亡エフェクトの大きさ
 
     // 変数--------------------------------
     [SerializeField] GameObject deadEffect; // 死亡エフェクト
@@ -58,10 +59,13 @@ public class Target : MonoBehaviour
         // 自身を小さくする
         transform.localScale = new Vector3(transform.localScale.x * SHRINK, transform.localScale.y * SHRINK, transform.localScale.z * SHRINK);
 
-        // 一定以下の大きさになったら自身を破壊し、死亡エフェクトを発生させる
+        // 一定以下の大きさになったら以下の処理を行う
         if (transform.localScale.x <= DELETE_SCALE_SIZE)
         {
+            // 自身を破壊する
             Destroy(gameObject);
+            // 死亡エフェクトを発生させる
+            Effect.EffectAdd(Calculation.WorldPosToUILocalPos(transform.position), "Darkness_7_Effect", "Effects", new Vector3(EFFECT_SCALE, EFFECT_SCALE, EFFECT_SCALE));
         }
     }
 

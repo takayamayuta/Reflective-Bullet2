@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CameraMove : MonoBehaviour
+public class SelectCameraMove : MonoBehaviour
 {
     // ’è”--------------------------------
     enum eSTATE
@@ -45,7 +45,6 @@ public class CameraMove : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Debug.Log(state);
         // ó‘Ô–ˆ‚Ìˆ—‚ğs‚¤
         switch (state)
         {

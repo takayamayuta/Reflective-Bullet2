@@ -12,7 +12,7 @@ public class Player : MonoBehaviour
 
     // 変数--------------------------------
     // 銃 サイト
-    [SerializeField] GameObject gun, site, sceneManager;
+    [SerializeField] GameObject gun, site, sceneManager, pauseText;
     [SerializeField] AudioClip gunReadySE, gunShotSE;
 
 
@@ -26,22 +26,36 @@ public class Player : MonoBehaviour
     void Update()
     {
         if (sceneManager.GetComponent<PlaySceneManager>().GetState() != PlaySceneManager.eSTATE.PLAY || gun.GetComponent<ShotBullet>().GetShot()) return;
+        
+        // サイトを表示する
+        site.SetActive(true);
+        // クリックしている座標の取得
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        // サイトの座標を変更する
+        site.transform.position = new Vector3(mouseWorldPos.x, mouseWorldPos.y, site.transform.position.z);
+        // 自身とサイトの角度を計算する
+        float angle = Calculation.GetAngle(PLAYER_DEFAULT_POS, mouseWorldPos);
+        float rad = angle * Mathf.Deg2Rad;
 
-        // マウス左ボタンが押されたら、撃つ準備をする
-        if (Input.GetMouseButtonDown(0)) Ready();
-        // マウス左ボタンが押され続けているなら、狙いを研ぎ澄ます
-        if (Input.GetMouseButton(0)) Aiming();
-        // マウス左ボタンが押されなくなったら、撃つ
-        if (Input.GetMouseButtonUp(0)) Shot();
-    }
+        if (angle > 90 || angle < -90) transform.rotation = Quaternion.Euler(0, 180, 0);
+        else transform.rotation = Quaternion.identity;
 
-    // ２点間の角度を計算する
-    float GetAngle(Vector2 start, Vector2 target)
-    {
-        Vector2 dt = target - start;
-        float rad = Mathf.Atan2(dt.y, dt.x);
-        float degree = rad * Mathf.Rad2Deg;
-        return degree;
+        // 銃の座標の調整
+        GunPositionUpdate(rad);
+        // 銃の角度の調整
+        GunAngleUpdate(angle);
+
+
+        // マウス左ボタンが押されたら、撃つ
+        if (Input.GetMouseButtonDown(0) && !pauseText.activeSelf)
+        {
+            // 弾を発射する
+            gun.GetComponent<ShotBullet>().Shot();
+            // サイトを非表示にする
+            site.SetActive(false);
+            // 銃を撃った音を流す
+            GetComponent<AudioSource>().PlayOneShot(gunShotSE);
+        }
     }
 
     void GunAngleUpdate(float _angle)
@@ -60,42 +74,5 @@ public class Player : MonoBehaviour
         Vector3 vec = direction * GUN_DIS;
         // 移動ベクトル分、銃とプレイヤーの距離を離す
         gun.transform.position = transform.position + vec + GUN_ADJ_POS;
-    }
-
-    // 撃つ準備をする
-    void Ready()
-    {
-        // サイトを表示する
-        site.SetActive(true);
-        // 銃の撃てる状態にした音を流す
-        GetComponent<AudioSource>().PlayOneShot(gunReadySE);
-    }
-
-    // 狙いを研ぎ澄ます
-    void Aiming()
-    {
-        // クリックしている座標の取得
-        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        // サイトの座標を変更する
-        site.transform.position = new Vector3(mouseWorldPos.x, mouseWorldPos.y, site.transform.position.z);
-
-        // 自身とサイトの角度を計算する
-        float angle = GetAngle(PLAYER_DEFAULT_POS, mouseWorldPos);
-        float rad = angle * Mathf.Deg2Rad;
-        // 銃の座標の調整
-        GunPositionUpdate(rad);
-        // 銃の角度の調整
-        GunAngleUpdate(angle);
-    }
-
-    // 撃つ
-    void Shot()
-    {
-        // 弾を発射する
-        gun.GetComponent<ShotBullet>().Shot();
-        // サイトを非表示にする
-        site.SetActive(false);
-        // 銃を撃った音を流す
-        GetComponent<AudioSource>().PlayOneShot(gunShotSE);
     }
 }

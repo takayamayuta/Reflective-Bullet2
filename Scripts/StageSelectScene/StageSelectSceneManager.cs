@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class StageSelectSceneManager : MonoBehaviour
 {
@@ -35,6 +36,8 @@ public class StageSelectSceneManager : MonoBehaviour
     // 変数--------------------------------
     // 選択時のSEと決定時のSE
     [SerializeField] AudioClip selectSE, decisionSE;
+    // 選択されているステージがいくつなのか表示するText
+    [SerializeField] GameObject stageText;
 
     // フェードイン・フェードアウトするオブジェクト
     GameObject fader;
@@ -43,7 +46,7 @@ public class StageSelectSceneManager : MonoBehaviour
     // 現在の状態
     eSTATE state;
     // カメラが動いてる状態
-    bool moving;        
+    bool moving;    
 
     // Start is called before the first frame update
     void Start()
@@ -70,6 +73,15 @@ public class StageSelectSceneManager : MonoBehaviour
             case eSTATE.SELECT: Select(); break;
             // フェードアウト
             case eSTATE.FADE_OUT: FadeOut(); break;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Time.timeScale = 0;
+        }
+        if (Input.GetKeyUp(KeyCode.Escape))
+        {
+            Time.timeScale = 1.0f;
         }
     }
 
@@ -123,6 +135,10 @@ public class StageSelectSceneManager : MonoBehaviour
 
             state = eSTATE.FADE_OUT;
         }
+
+        // 選択しているステージがいくつなのかテキストの内容を変更する
+        int stageNum = (int)select + 1;
+        stageText.GetComponent<Text>().text = "ステージ" + stageNum;
     }
 
     // カメラが動いている状態か判定フラグを渡す

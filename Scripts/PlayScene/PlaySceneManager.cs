@@ -20,6 +20,17 @@ public class PlaySceneManager : MonoBehaviour
         MAX
     }
 
+    public enum eSCENE
+    {
+        NONE = -1,
+
+        TITLE,
+        STAGE_SELECT,
+        PLAY,
+
+        MAX
+    }
+
     // ターゲットの最大数
     const int TARGET_MAX_NUM = 10;
     // クリア判定を確認する間隔
@@ -32,10 +43,10 @@ public class PlaySceneManager : MonoBehaviour
     // 変数--------------------------------
     // 各ターゲット
     [SerializeField] GameObject[] targets = new GameObject[TARGET_MAX_NUM];
-    // リザルト用テキスト
-    [SerializeField] GameObject resultText, readyText;
-    // 成功時、失敗時のSE
-    [SerializeField] AudioClip clearSE, failedSE;
+    // リザルト用テキスト、プレイ開始前テキスト、ポーズ画面
+    [SerializeField] GameObject resultText, readyText, pauseText;
+    // 成功時、失敗時のSE、ポーズ画面を開閉した時のSE、次のシーンに行くときのSE
+    [SerializeField] AudioClip clearSE, failedSE, pauseSE, enterSE;
 
     // シーン遷移時の演出
     GameObject fader;
@@ -43,14 +54,14 @@ public class PlaySceneManager : MonoBehaviour
     // 現在の状態
     eSTATE state;
 
-    // クリア判定
-    bool clear;
-
-    // 弾の状態
-    bool bulletAlive;
+    // クリア判定、弾の状態、ポーズ状態
+    bool clear, bulletAlive, pause;
 
     // クリア判定を確認する間隔を計るタイマー 待機時間を計測するタイマー
     float checkTimer, waitTimer;
+
+    // 選択されているシーン先
+    eSCENE nextScene;
 
     // Start is called before the first frame update
     void Start()
@@ -59,18 +70,24 @@ public class PlaySceneManager : MonoBehaviour
         state = eSTATE.FADE_IN;
         // 演出用オブジェクトを生成する
         fader = gameObject.GetComponent<GenerateFader>().Generate();
+        fader.transform.SetSiblingIndex(pauseText.transform.GetSiblingIndex());
         // 未クリア状態
         clear = false;
         // 弾が消えてない状態
         bulletAlive = true;
+        // ポーズ状態じゃない
+        pause = false;
         // タイマーリセット
         checkTimer = 0;
         waitTimer = 0;
+
+        nextScene = eSCENE.STAGE_SELECT;
     }
 
     // Update is called once per frame
     void Update()
     {
+        // 各状態毎の処理を行う
         switch(state)
         {
             case eSTATE.FADE_IN:    FadeIn();   break;
@@ -79,13 +96,18 @@ public class PlaySceneManager : MonoBehaviour
             case eSTATE.RESULT:     Result();   break;
             case eSTATE.FADE_OUT:   FadeOut();  break;
         }
+
+        // ポーズ処理
+        Pause();
     }
 
+    // フェードイン
     void FadeIn()
     {
         if (fader.GetComponent<Fader>().Fading()) state = eSTATE.READY;
     }
 
+    // 準備
     void Ready()
     {
         // タイマーの計測
@@ -102,6 +124,7 @@ public class PlaySceneManager : MonoBehaviour
         }
     }
 
+    // プレイ
     void Play()
     {
         // タイマーカウント
@@ -120,6 +143,34 @@ public class PlaySceneManager : MonoBehaviour
         if (waitTimer >= WAIT_TIME) state = eSTATE.RESULT;
     }
 
+    // ポーズ
+    void Pause()
+    {
+        // 特定キーが押されたら以下の処理を行う
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (pause)
+            {
+                // ゲーム内進行時間を１にする
+                Time.timeScale = 1.0f;
+                // ポーズ画面を非表示する
+                pauseText.SetActive(false);
+            }
+            else
+            {
+                // ゲーム内進行時間を０にする
+                Time.timeScale = 0;
+                // ポーズ画面を表示する
+                pauseText.SetActive(true);
+            }
+            // ポーズ状態の切り替え
+            pause = !pause;
+            // SEを流す
+            GetComponent<AudioSource>().PlayOneShot(pauseSE);
+        }
+    }
+
+    // リザルト
     void Result()
     {
         // クリア判定によって流すSEを変える
@@ -133,14 +184,27 @@ public class PlaySceneManager : MonoBehaviour
         resultText.SetActive(true);
 
         // 特定キーが押されたら次の状態に移行する
-        if (Input.GetKeyDown(KeyCode.Space)) state = eSTATE.FADE_OUT;
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            state = eSTATE.FADE_OUT;
+            // SEを流す
+            GetComponent<AudioSource>().PlayOneShot(enterSE);
+        }
     }
 
+    // フェードアウト
     void FadeOut()
     {
-        if (fader.GetComponent<Fader>().Fading()) SceneManager.LoadScene("StageSelectScene");
+        // フェードアウトが完了するまで以下の処理を飛ばす
+        if (fader.GetComponent<Fader>().Fading())
+        {
+            // 選択された各シーンに遷移する
+            if (nextScene == eSCENE.STAGE_SELECT) SceneManager.LoadScene("StageSelectScene");
+            if (nextScene == eSCENE.PLAY) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
+    // ターゲットが全滅しているか確認する
     bool TargetCheck()
     {
         // タイマーが一定時間経過してない場合falseを返す
@@ -166,13 +230,34 @@ public class PlaySceneManager : MonoBehaviour
         return clear;
     }
 
+    // 弾の生存フラグをfalseにする
     public void BulletLost()
     {
         bulletAlive = false;
     }
 
+    // 状態情報を渡す
     public eSTATE GetState()
     {
         return state;
+    }
+    
+    // ターゲットの数を渡す
+    public int GetTargetNum()
+    {
+        return targets.Length;
+    }
+
+    // ボタンを選択した
+    public void SelectButton(eSCENE scene)
+    {
+        // 状態の移行
+        state = eSTATE.FADE_OUT;
+        // 選択されたシーンを記憶する
+        nextScene = scene;
+        // ゲームの進行速度を戻す
+        Time.timeScale = 1.0f;
+        // フェーダーを一番手前にもってくる
+        fader.transform.SetAsLastSibling();
     }
 }

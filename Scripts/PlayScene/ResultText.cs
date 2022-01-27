@@ -7,16 +7,16 @@ public class ResultText : MonoBehaviour
 {
     // 定数--------------------------------
     // 始点終点座標X
-    const int START_END_POS_X = 2000;
+    const int START_END_POS_X = 1200;
     // スピードが変わる座標
     const int SPEED_CHANGE_POS = 300;
     // 速いときの速度
-    const int FAST_SPEED = 15;
+    const int FAST_SPEED = 25;
     // 遅いときの速度
     const int SLOW_SPEED = 6;
 
     // 変数--------------------------------
-    [SerializeField] GameObject sceneManager;
+    [SerializeField] GameObject sceneManager, pauseText;
     // Textコンポーネント
     Text text;
     // TypefaceAnimator
@@ -58,6 +58,9 @@ public class ResultText : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // ポーズ画面表示中は処理を飛ばす
+        if (pauseText.activeSelf) return;
+
         // 減速範囲外の時は速いスピードで移動
         if (transform.localPosition.x <= -SPEED_CHANGE_POS || transform.localPosition.x >= SPEED_CHANGE_POS)
         {
